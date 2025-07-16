@@ -183,222 +183,264 @@
                 flex: 100%;
             }
         }
+        #authModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        #authModalContent {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            width: 300px;
+            color: #333;
+        }
+        #authMessage {
+            color: red;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>TaskFlow ⚡</h1>
-        <div class="subtitle">Your Dynamic Priority-Based Task Manager</div>
-        <div class="header">
-            <button id="login-btn">Login</button>
+        <h1>TaskFlow</h1>
+        <p class="subtitle">Manage your tasks efficiently</p>
+        
+        <div class="auth-section" id="authSection">
+            <button onclick="showAuthModal('login')">Login</button>
+            <button onclick="showAuthModal('register')">Register</button>
+            <button id="logout-btn" onclick="logout()" style="display: none;">Logout</button>
         </div>
-        <div class="auth-section" id="auth-section">
-            <button onclick="setUsername()">Set Username</button>
-            <button onclick="logout()">Logout</button>
-            <p id="auth-status"></p>
-        </div>
-        <div class="task-input" id="task-input" style="display: none;">
-            <span role="img" aria-label="rocket">🚀</span> Add New Task
-            <input type="text" id="task-title" placeholder="Task title...">
-            <input type="date" id="due-date" value="2025-07-16">
-            <input type="text" id="category" placeholder="Category (e.g., Work, Personal)">
-            <select id="priority">
-                <option value="low">Low Priority</option>
-                <option value="mid">Medium Priority</option>
-                <option value="high">High Priority</option>
-                <option value="big">Big Project</option>
+        
+        <div class="task-input" id="taskInputSection" style="display: none;">
+            <input type="text" id="taskName" placeholder="Task Name">
+            <select id="prioritySelect">
+                <option value="low">Low</option>
+                <option value="mid">Mid</option>
+                <option value="high">High</option>
+                <option value="big">Big</option>
             </select>
-            <button onclick="addTask()">Add Task ✨</button>
+            <button onclick="addTask()">Add Task</button>
         </div>
-        <div class="section">
-            <h3>Active Tasks <span id="active-count">0</span> 💪</h3>
-            <div id="active-tasks">No tasks yet! Set a username to start.</div>
+        
+        <div class="section" id="lowTasks" style="display: none;">
+            <h3>Low Priority</h3>
+            <div id="lowTasksList"></div>
         </div>
-        <div class="section">
-            <h3>Completed Tasks <span id="completed-count">0</span> ✅</h3>
-            <div id="completed-tasks">Completed tasks will appear here!</div>
+        
+        <div class="section" id="midTasks" style="display: none;">
+            <h3>Mid Priority</h3>
+            <div id="midTasksList"></div>
         </div>
-        <div class="section">
-            <h3>Today's Overview 📊</h3>
-            <div class="overview">
-                <div><span role="img" aria-label="fire">🔥</span> High Due Today <span id="high-due">0</span></div>
-                <div><span role="img" aria-label="star">🌟</span> Medium Due Today <span id="mid-due">0</span></div>
-                <div><span role="img" aria-label="leaf">🌱</span> Low Due Today <span id="low-due">0</span></div>
-                <div><span role="img" aria-label="rocket">🚀</span> Big Projects Today <span id="big-due">0</span></div>
-                <div><span role="img" aria-label="clipboard">📋</span> Total Active <span id="total-active">0</span></div>
-            </div>
+        
+        <div class="section" id="highTasks" style="display: none;">
+            <h3>High Priority</h3>
+            <div id="highTasksList"></div>
         </div>
-        <div class="section">
-            <h3>Monthly Job Summary 📅</h3>
-            <button id="show-summary">Show Details</button>
-            <div id="monthly-summary"></div>
+        
+        <div class="section" id="bigTasks" style="display: none;">
+            <h3>Big Priority</h3>
+            <div id="bigTasksList"></div>
+        </div>
+        
+        <div class="overview" id="overview" style="display: none;">
+            <div>High: <span id="highCount">0</span></div>
+            <div>Mid: <span id="midCount">0</span></div>
+            <div>Low: <span id="lowCount">0</span></div>
+            <div>Big: <span id="bigCount">0</span></div>
+            <div>Total: <span id="totalCount">0</span></div>
+        </div>
+        
+        <button id="show-summary" onclick="toggleSummary()" style="display: none;">Show Monthly Summary</button>
+        <div id="monthly-summary">
+            <table id="summaryTable">
+                <thead>
+                    <tr>
+                        <th>Month</th>
+                        <th>Completed Tasks</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
         </div>
     </div>
 
-    <!-- Firebase SDK -->
+    <div id="authModal">
+        <div id="authModalContent">
+            <h3 id="authTitle">Login / Register</h3>
+            <label>Email</label>
+            <input type="email" id="authEmail">
+            <label>Password</label>
+            <input type="password" id="authPassword">
+            <button id="authSubmit" onclick="submitAuth()">Submit</button>
+            <button onclick="hideAuthModal()">Cancel</button>
+            <p id="authMessage"></p>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
-        import { getDatabase, ref, push, update, onValue, remove } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+        import { getDatabase, ref, onValue, set, push, remove } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
 
+        // Replace with your Firebase config for this project
         const firebaseConfig = {
-            apiKey: "AIzaSyC98afBAxl_NsvnoG5eFPcVE7HW8k4Zr_U",
-            authDomain: "taskflow-app-2bda2.firebaseapp.com",
-            projectId: "taskflow-app-2bda2",
-            storageBucket: "taskflow-app-2bda2.firebasestorage.app",
-            messagingSenderId: "344321758713",
-            appId: "1:344321758713:web:a043262d45f50cd2361928"
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            databaseURL: "YOUR_DATABASE_URL",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
 
         const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
-        let currentUser = localStorage.getItem('currentUser') || null;
+        const auth = getAuth(app);
+        const db = getDatabase(app);
 
-        function setUsername() {
-            const username = prompt('Enter a username to identify your task list:');
-            if (username) {
-                currentUser = username;
-                localStorage.setItem('currentUser', currentUser);
-                document.getElementById('auth-status').textContent = `Username set to ${currentUser}!`;
-                showTaskInput();
-                loadTasks();
+        let currentUser = null;
+        let authMode = 'login'; // 'login' or 'register'
+
+        const taskInputSection = document.getElementById('taskInputSection');
+        const lowTasks = document.getElementById('lowTasks');
+        const midTasks = document.getElementById('midTasks');
+        const highTasks = document.getElementById('highTasks');
+        const bigTasks = document.getElementById('bigTasks');
+        const overview = document.getElementById('overview');
+        const showSummaryBtn = document.getElementById('show-summary');
+        const monthlySummary = document.getElementById('monthly-summary');
+        const logoutBtn = document.getElementById('logout-btn');
+        const authSection = document.getElementById('authSection');
+
+        onAuthStateChanged(auth, user => {
+            currentUser = user;
+            if (user) {
+                authSection.style.display = 'none';
+                logoutBtn.style.display = 'inline-block';
+                taskInputSection.style.display = 'flex';
+                lowTasks.style.display = 'block';
+                midTasks.style.display = 'block';
+                highTasks.style.display = 'block';
+                bigTasks.style.display = 'block';
+                overview.style.display = 'flex';
+                showSummaryBtn.style.display = 'block';
+                loadTasks(user.uid);
+            } else {
+                authSection.style.display = 'block';
+                logoutBtn.style.display = 'none';
+                taskInputSection.style.display = 'none';
+                lowTasks.style.display = 'none';
+                midTasks.style.display = 'none';
+                highTasks.style.display = 'none';
+                bigTasks.style.display = 'none';
+                overview.style.display = 'none';
+                showSummaryBtn.style.display = 'none';
+                monthlySummary.style.display = 'none';
             }
-        }
-
-        function logout() {
-            currentUser = null;
-            localStorage.removeItem('currentUser');
-            document.getElementById('auth-status').textContent = 'Logged out!';
-            document.getElementById('task-input').style.display = 'none';
-            document.getElementById('active-tasks').innerHTML = 'No tasks yet! Set a username to start.';
-            document.getElementById('completed-tasks').innerHTML = 'Completed tasks will appear here!';
-        }
-
-        function showTaskInput() {
-            document.getElementById('task-input').style.display = 'flex';
-            document.getElementById('auth-section').style.display = 'none';
-        }
-
-        function addTask() {
-            if (!currentUser) {
-                alert('Please set a username first!');
-                return;
-            }
-            const title = document.getElementById('task-title').value;
-            const dueDate = document.getElementById('due-date').value;
-            const category = document.getElementById('category').value;
-            const priority = document.getElementById('priority').value;
-            if (title) {
-                const taskRef = push(ref(database, 'tasks/' + currentUser));
-                update(taskRef, {
-                    title: title,
-                    dueDate: dueDate,
-                    category: category,
-                    priority: priority,
-                    completed: false,
-                    dateAdded: new Date().toISOString().split('T')[0]
-                });
-                document.getElementById('task-title').value = '';
-                document.getElementById('due-date').value = '2025-07-16';
-                document.getElementById('category').value = '';
-            }
-        }
-
-        function markDone(taskId) {
-            if (!currentUser) return;
-            const taskRef = ref(database, 'tasks/' + currentUser + '/' + taskId);
-            update(taskRef, {
-                completed: true,
-                completedDate: new Date().toISOString().split('T')[0]
-            });
-        }
-
-        function loadTasks() {
-            if (!currentUser) return;
-            const activeTasks = document.getElementById('active-tasks');
-            const completedTasks = document.getElementById('completed-tasks');
-            activeTasks.innerHTML = '';
-            completedTasks.innerHTML = '';
-            const today = new Date().toISOString().split('T')[0];
-            let highDue = 0, midDue = 0, lowDue = 0, bigDue = 0, totalActive = 0;
-
-            const tasksRef = ref(database, 'tasks/' + currentUser);
-            onValue(tasksRef, (snapshot) => {
-                const tasksData = snapshot.val() || {};
-                const tasks = Object.keys(tasksData).map(key => ({ id: key, ...tasksData[key] }));
-
-                tasks.forEach(task => {
-                    if (!task.completed && (task.dueDate === today || (task.priority === 'big' && !task.dueDate))) {
-                        if (task.priority === 'high') highDue++;
-                        else if (task.priority === 'mid') midDue++;
-                        else if (task.priority === 'low') lowDue++;
-                        else if (task.priority === 'big') bigDue++;
-                    }
-                    if (!task.completed) totalActive++;
-                });
-
-                document.getElementById('high-due').textContent = highDue;
-                document.getElementById('mid-due').textContent = midDue;
-                document.getElementById('low-due').textContent = lowDue;
-                document.getElementById('big-due').textContent = bigDue;
-                document.getElementById('total-active').textContent = totalActive;
-                document.getElementById('active-count').textContent = totalActive;
-
-                tasks.forEach(task => {
-                    const taskDiv = document.createElement('div');
-                    taskDiv.className = 'tasks-list ' + task.priority;
-                    taskDiv.innerHTML = `${task.title} (${task.category}) - ${task.priority === 'big' ? 'No due date' : task.dueDate || 'Not set'} <button onclick="markDone('${task.id}')">Done</button>`;
-                    if (task.completed) {
-                        if (new Date(task.completedDate) > new Date(Date.now() - 45 * 24 * 60 * 60 * 1000)) {
-                            completedTasks.appendChild(taskDiv);
-                        }
-                    } else {
-                        activeTasks.appendChild(taskDiv);
-                    }
-                });
-                document.getElementById('completed-count').textContent = completedTasks.children.length;
-            });
-        }
-
-        document.getElementById('show-summary').addEventListener('click', () => {
-            const summary = document.getElementById('monthly-summary');
-            summary.innerHTML = '';
-            if (!currentUser) return;
-            const tasksRef = ref(database, 'tasks/' + currentUser);
-            onValue(tasksRef, (snapshot) => {
-                const tasksData = snapshot.val() || {};
-                const tasks = Object.keys(tasksData).map(key => ({ id: key, ...tasksData[key] }));
-                const months = {};
-                tasks.forEach(task => {
-                    const month = task.dateAdded.split('-')[1];
-                    if (!months[month]) months[month] = { active: [], completed: [] };
-                    if (task.completed) months[month].completed.push(task);
-                    else months[month].active.push(task);
-                });
-
-                for (let month in months) {
-                    const table = document.createElement('table');
-                    let html = `<tr><th colspan="3">Month: ${new Date(2025, month - 1).toLocaleString('default', { month: 'long' })}</th></tr>`;
-                    html += '<tr><th>Task Title</th><th>Category</th><th>Due/Completed Date</th></tr>';
-                    months[month].active.forEach(task => {
-                        html += `<tr><td>${task.title}</td><td>${task.category}</td><td>${task.dueDate || 'No due date'}</td></tr>`;
-                    });
-                    if (months[month].active.length) html += '<tr><th colspan="3">Active Tasks</th></tr>';
-                    months[month].completed.forEach(task => {
-                        html += `<tr><td>${task.title}</td><td>${task.category}</td><td>${task.completedDate}</td></tr>`;
-                    });
-                    if (months[month].completed.length) html += '<tr><th colspan="3">Completed Tasks</th></tr>';
-                    table.innerHTML = html;
-                    summary.appendChild(table);
-                }
-                summary.style.display = summary.style.display === 'none' ? 'block' : 'none';
-            });
         });
 
-        // Initial load
-        document.getElementById('login-btn').addEventListener('click', setUsername);
-        if (currentUser) {
-            showTaskInput();
-            loadTasks();
+        window.showAuthModal = function(mode) {
+            authMode = mode;
+            document.getElementById('authTitle').textContent = mode.charAt(0).toUpperCase() + mode.slice(1);
+            document.getElementById('authModal').style.display = 'flex';
+            document.getElementById('authSubmit').textContent = mode.charAt(0).toUpperCase() + mode.slice(1);
+        }
+
+        window.hideAuthModal = function() {
+            document.getElementById('authModal').style.display = 'none';
+            document.getElementById('authMessage').textContent = '';
+        }
+
+        window.submitAuth = function() {
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+            if (authMode === 'login') {
+                signInWithEmailAndPassword(auth, email, password)
+                    .then(hideAuthModal)
+                    .catch(err => document.getElementById('authMessage').textContent = err.message);
+            } else {
+                createUserWithEmailAndPassword(auth, email, password)
+                    .then(hideAuthModal)
+                    .catch(err => document.getElementById('authMessage').textContent = err.message);
+            }
+        }
+
+        window.logout = function() {
+            signOut(auth);
+        }
+
+        function loadTasks(uid) {
+            const tasksRef = ref(db, `tasks/${uid}`);
+            onValue(tasksRef, snapshot => {
+                const tasks = snapshot.val() || {};
+                const lists = {
+                    low: document.getElementById('lowTasksList'),
+                    mid: document.getElementById('midTasksList'),
+                    high: document.getElementById('highTasksList'),
+                    big: document.getElementById('bigTasksList')
+                };
+                let counts = { low: 0, mid: 0, high: 0, big: 0 };
+                Object.keys(lists).forEach(priority => {
+                    lists[priority].innerHTML = '';
+                    counts[priority] = 0;
+                });
+                Object.entries(tasks).forEach(([key, task]) => {
+                    const li = document.createElement('div');
+                    li.className = `tasks-list ${task.priority}`;
+                    li.innerHTML = `${task.name} <button onclick="completeTask('${key}')">Complete</button>`;
+                    lists[task.priority].appendChild(li);
+                    counts[task.priority]++;
+                });
+                document.getElementById('lowCount').textContent = counts.low;
+                document.getElementById('midCount').textContent = counts.mid;
+                document.getElementById('highCount').textContent = counts.high;
+                document.getElementById('bigCount').textContent = counts.big;
+                document.getElementById('totalCount').textContent = Object.values(counts).reduce((a, b) => a + b, 0);
+            });
+        }
+
+        window.addTask = function() {
+            if (!currentUser) return;
+            const name = document.getElementById('taskName').value.trim();
+            const priority = document.getElementById('prioritySelect').value;
+            if (!name) return alert('Enter task name');
+            const tasksRef = ref(db, `tasks/${currentUser.uid}`);
+            const newTaskRef = push(tasksRef);
+            set(newTaskRef, { name, priority });
+            document.getElementById('taskName').value = '';
+        }
+
+        window.completeTask = function(key) {
+            if (!currentUser) return;
+            remove(ref(db, `tasks/${currentUser.uid}/${key}`));
+            // Optional: Log to completed tasks for summary
+            const completedRef = ref(db, `completed/${currentUser.uid}/${new Date().toISOString().slice(0,7)}`);
+            runTransaction(completedRef, current => (current || 0) + 1);
+        }
+
+        window.toggleSummary = function() {
+            monthlySummary.style.display = monthlySummary.style.display === 'none' ? 'block' : 'none';
+            if (monthlySummary.style.display === 'block') loadSummary();
+        }
+
+        function loadSummary() {
+            if (!currentUser) return;
+            const completedRef = ref(db, `completed/${currentUser.uid}`);
+            onValue(completedRef, snapshot => {
+                const data = snapshot.val() || {};
+                const tbody = document.querySelector('#summaryTable tbody');
+                tbody.innerHTML = '';
+                Object.entries(data).forEach(([month, count]) => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td>${month}</td><td>${count}</td>`;
+                    tbody.appendChild(tr);
+                });
+            });
         }
     </script>
 </body>
