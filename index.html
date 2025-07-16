@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TaskFlow</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #6b48ff, #a856ff);
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 20px;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+        }
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 5px;
+            color: #fff;
+            font-weight: bold;
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 1em;
+            color: #ddd;
+            margin-bottom: 20px;
+        }
+        .header {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 20px;
+        }
+        .header button {
+            padding: 10px 15px;
+            background: #a856ff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .auth-section {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .auth-section button {
+            padding: 10px 15px;
+            margin: 0 5px;
+            background: #a856ff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .task-input {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .task-input input, .task-input select {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            background: rgba(255, 255, 255, 0.3);
+            color: #333;
+        }
+        .task-input select {
+            background: #fff;
+        }
+        .task-input option[value="low"] { background: rgba(144, 238, 144, 0.5); color: #333; }
+        .task-input option[value="mid"] { background: rgba(255, 215, 0, 0.5); color: #333; }
+        .task-input option[value="high"] { background: rgba(255, 99, 71, 0.5); color: #fff; }
+        .task-input option[value="big"] { background: rgba(106, 90, 205, 0.5); color: #fff; }
+        .task-input button {
+            padding: 10px 20px;
+            background: linear-gradient(45deg, #ff4d94, #ff80bf);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .task-input button:hover {
+            background: linear-gradient(45deg, #e60073, #ff66a3);
+        }
+        .section {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .section h3 {
+            margin: 0 0 10px;
+            font-size: 1.2em;
+        }
+        .tasks-list {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .tasks-list.low { border-left: 5px solid rgba(144, 238, 144, 0.5); }
+        .tasks-list.mid { border-left: 5px solid rgba(255, 215, 0, 0.5); }
+        .tasks-list.high { border-left: 5px solid rgba(255, 99, 71, 0.5); }
+        .tasks-list.big { border-left: 5px solid rgba(106, 90, 205, 0.5); }
+        .tasks-list button {
+            padding: 5px 10px;
+            background: #00cc00;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .tasks-list button:hover {
+            background: #009900;
+        }
+        .overview {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .overview div {
+            flex: 1;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .overview div:nth-child(1) { background: rgba(255, 99, 71, 0.5); }
+        .overview div:nth-child(2) { background: rgba(255, 215, 0, 0.5); }
+        .overview div:nth-child(3) { background: rgba(144, 238, 144, 0.5); }
+        .overview div:nth-child(4) { background: rgba(106, 90, 205, 0.5); }
+        .overview div:nth-child(5) { background: rgba(255, 255, 255, 0.2); }
+        #monthly-summary {
+            display: none;
+        }
+        #show-summary {
+            background: #ffd700;
+            color: #333;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #show-summary:hover {
+            background: #ffcc00;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        @media (max-width: 480px) {
+            .task-input {
+                flex-direction: column;
+            }
+            .overview div {
+                flex: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TaskFlow ⚡</h1>
+        <div class="subtitle">Your Dynamic Priority-Based Task Manager</div>
+        <div class="header">
+            <button id="login-btn">Login</button>
+        </div>
+        <div class="auth-section" id="auth-section">
+            <button onclick="setUsername()">Set Username</button>
+            <button onclick="logout()">Logout</button>
+            <p id="auth-status"></p>
+        </div>
+        <div class="task-input" id="task-input" style="display: none;">
+            <span role="img" aria-label="rocket">🚀</span> Add New Task
+            <input type="text" id="task-title" placeholder="Task title...">
+            <input type="date" id="due-date" value="2025-07-16">
+            <input type="text" id="category" placeholder="Category (e.g., Work, Personal)">
+            <select id="priority">
+                <option value="low">Low Priority</option>
+                <option value="mid">Medium Priority</option>
+                <option value="high">High Priority</option>
+                <option value="big">Big Project</option>
+            </select>
+            <button onclick="addTask()">Add Task ✨</button>
+        </div>
+        <div class="section">
+            <h3>Active Tasks <span id="active-count">0</span> 💪</h3>
+            <div id="active-tasks">No tasks yet! Set a username to start.</div>
+        </div>
+        <div class="section">
+            <h3>Completed Tasks <span id="completed-count">0</span> ✅</h3>
+            <div id="completed-tasks">Completed tasks will appear here!</div>
+        </div>
+        <div class="section">
+            <h3>Today's Overview 📊</h3>
+            <div class="overview">
+                <div><span role="img" aria-label="fire">🔥</span> High Due Today <span id="high-due">0</span></div>
+                <div><span role="img" aria-label="star">🌟</span> Medium Due Today <span id="mid-due">0</span></div>
+                <div><span role="img" aria-label="leaf">🌱</span> Low Due Today <span id="low-due">0</span></div>
+                <div><span role="img" aria-label="rocket">🚀</span> Big Projects Today <span id="big-due">0</span></div>
+                <div><span role="img" aria-label="clipboard">📋</span> Total Active <span id="total-active">0</span></div>
+            </div>
+        </div>
+        <div class="section">
+            <h3>Monthly Job Summary 📅</h3>
+            <button id="show-summary">Show Details</button>
+            <div id="monthly-summary"></div>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+        import { getDatabase, ref, push, update, onValue, remove } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC98afBAxl_NsvnoG5eFPcVE7HW8k4Zr_U",
+            authDomain: "taskflow-app-2bda2.firebaseapp.com",
+            projectId: "taskflow-app-2bda2",
+            storageBucket: "taskflow-app-2bda2.firebasestorage.app",
+            messagingSenderId: "344321758713",
+            appId: "1:344321758713:web:a043262d45f50cd2361928"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        let currentUser = localStorage.getItem('currentUser') || null;
+
+        function setUsername() {
+            const username = prompt('Enter a username to identify your task list:');
+            if (username) {
+                currentUser = username;
+                localStorage.setItem('currentUser', currentUser);
+                document.getElementById('auth-status').textContent = `Username set to ${currentUser}!`;
+                showTaskInput();
+                loadTasks();
+            }
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            document.getElementById('auth-status').textContent = 'Logged out!';
+            document.getElementById('task-input').style.display = 'none';
+            document.getElementById('active-tasks').innerHTML = 'No tasks yet! Set a username to start.';
+            document.getElementById('completed-tasks').innerHTML = 'Completed tasks will appear here!';
+        }
+
+        function showTaskInput() {
+            document.getElementById('task-input').style.display = 'flex';
+            document.getElementById('auth-section').style.display = 'none';
+        }
+
+        function addTask() {
+            if (!currentUser) {
+                alert('Please set a username first!');
+                return;
+            }
+            const title = document.getElementById('task-title').value;
+            const dueDate = document.getElementById('due-date').value;
+            const category = document.getElementById('category').value;
+            const priority = document.getElementById('priority').value;
+            if (title) {
+                const taskRef = push(ref(database, 'tasks/' + currentUser));
+                update(taskRef, {
+                    title: title,
+                    dueDate: dueDate,
+                    category: category,
+                    priority: priority,
+                    completed: false,
+                    dateAdded: new Date().toISOString().split('T')[0]
+                });
+                document.getElementById('task-title').value = '';
+                document.getElementById('due-date').value = '2025-07-16';
+                document.getElementById('category').value = '';
+            }
+        }
+
+        function markDone(taskId) {
+            if (!currentUser) return;
+            const taskRef = ref(database, 'tasks/' + currentUser + '/' + taskId);
+            update(taskRef, {
+                completed: true,
+                completedDate: new Date().toISOString().split('T')[0]
+            });
+        }
+
+        function loadTasks() {
+            if (!currentUser) return;
+            const activeTasks = document.getElementById('active-tasks');
+            const completedTasks = document.getElementById('completed-tasks');
+            activeTasks.innerHTML = '';
+            completedTasks.innerHTML = '';
+            const today = new Date().toISOString().split('T')[0];
+            let highDue = 0, midDue = 0, lowDue = 0, bigDue = 0, totalActive = 0;
+
+            const tasksRef = ref(database, 'tasks/' + currentUser);
+            onValue(tasksRef, (snapshot) => {
+                const tasksData = snapshot.val() || {};
+                const tasks = Object.keys(tasksData).map(key => ({ id: key, ...tasksData[key] }));
+
+                tasks.forEach(task => {
+                    if (!task.completed && (task.dueDate === today || (task.priority === 'big' && !task.dueDate))) {
+                        if (task.priority === 'high') highDue++;
+                        else if (task.priority === 'mid') midDue++;
+                        else if (task.priority === 'low') lowDue++;
+                        else if (task.priority === 'big') bigDue++;
+                    }
+                    if (!task.completed) totalActive++;
+                });
+
+                document.getElementById('high-due').textContent = highDue;
+                document.getElementById('mid-due').textContent = midDue;
+                document.getElementById('low-due').textContent = lowDue;
+                document.getElementById('big-due').textContent = bigDue;
+                document.getElementById('total-active').textContent = totalActive;
+                document.getElementById('active-count').textContent = totalActive;
+
+                tasks.forEach(task => {
+                    const taskDiv = document.createElement('div');
+                    taskDiv.className = 'tasks-list ' + task.priority;
+                    taskDiv.innerHTML = `${task.title} (${task.category}) - ${task.priority === 'big' ? 'No due date' : task.dueDate || 'Not set'} <button onclick="markDone('${task.id}')">Done</button>`;
+                    if (task.completed) {
+                        if (new Date(task.completedDate) > new Date(Date.now() - 45 * 24 * 60 * 60 * 1000)) {
+                            completedTasks.appendChild(taskDiv);
+                        }
+                    } else {
+                        activeTasks.appendChild(taskDiv);
+                    }
+                });
+                document.getElementById('completed-count').textContent = completedTasks.children.length;
+            });
+        }
+
+        document.getElementById('show-summary').addEventListener('click', () => {
+            const summary = document.getElementById('monthly-summary');
+            summary.innerHTML = '';
+            if (!currentUser) return;
+            const tasksRef = ref(database, 'tasks/' + currentUser);
+            onValue(tasksRef, (snapshot) => {
+                const tasksData = snapshot.val() || {};
+                const tasks = Object.keys(tasksData).map(key => ({ id: key, ...tasksData[key] }));
+                const months = {};
+                tasks.forEach(task => {
+                    const month = task.dateAdded.split('-')[1];
+                    if (!months[month]) months[month] = { active: [], completed: [] };
+                    if (task.completed) months[month].completed.push(task);
+                    else months[month].active.push(task);
+                });
+
+                for (let month in months) {
+                    const table = document.createElement('table');
+                    let html = `<tr><th colspan="3">Month: ${new Date(2025, month - 1).toLocaleString('default', { month: 'long' })}</th></tr>`;
+                    html += '<tr><th>Task Title</th><th>Category</th><th>Due/Completed Date</th></tr>';
+                    months[month].active.forEach(task => {
+                        html += `<tr><td>${task.title}</td><td>${task.category}</td><td>${task.dueDate || 'No due date'}</td></tr>`;
+                    });
+                    if (months[month].active.length) html += '<tr><th colspan="3">Active Tasks</th></tr>';
+                    months[month].completed.forEach(task => {
+                        html += `<tr><td>${task.title}</td><td>${task.category}</td><td>${task.completedDate}</td></tr>`;
+                    });
+                    if (months[month].completed.length) html += '<tr><th colspan="3">Completed Tasks</th></tr>';
+                    table.innerHTML = html;
+                    summary.appendChild(table);
+                }
+                summary.style.display = summary.style.display === 'none' ? 'block' : 'none';
+            });
+        });
+
+        // Initial load
+        document.getElementById('login-btn').addEventListener('click', setUsername);
+        if (currentUser) {
+            showTaskInput();
+            loadTasks();
+        }
+    </script>
+</body>
+</html>
