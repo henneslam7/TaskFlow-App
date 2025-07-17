@@ -314,6 +314,14 @@
             border-bottom: 1px solid rgba(255, 255, 255, 0.2);
             color: #fff;
         }
+        th:first-child, td:first-child {
+            width: 70%;
+            text-align: left;
+        }
+        th:last-child, td:last-child {
+            width: 30%;
+            text-align: right;
+        }
         #authModal {
             position: fixed;
             top: 0;
@@ -594,8 +602,6 @@
                 const tasks = snapshot.val() || {};
                 activeTasksList.innerHTML = '';
                 completedTasksList.innerHTML = '';
-                activePlaceholder.style.display = Object.keys(tasks).length > 0 ? 'none' : 'block';
-                completedPlaceholder.style.display = Object.keys(tasks).length > 0 ? 'none' : 'block';
                 let activeC = 0, completedC = 0;
                 let hD = 0, mD = 0, lD = 0, bP = 0;
                 let hDT = [], mDT = [], lDT = [], bPT = [];
