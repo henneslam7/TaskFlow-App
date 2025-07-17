@@ -594,11 +594,13 @@
                 const tasks = snapshot.val() || {};
                 activeTasksList.innerHTML = '';
                 completedTasksList.innerHTML = '';
+                activePlaceholder.style.display = Object.keys(tasks).length > 0 ? 'none' : 'block';
+                completedPlaceholder.style.display = Object.keys(tasks).length > 0 ? 'none' : 'block';
                 let activeC = 0, completedC = 0;
                 let hD = 0, mD = 0, lD = 0, bP = 0;
                 let hDT = [], mDT = [], lDT = [], bPT = [];
-                const today = new Date().toLocaleString('en-US', { timeZone: 'Asia/Singapore' }).slice(0, 10);
-                const fortyFiveDaysAgo = new Date(new Date().setDate(new Date().getDate() - 45)).toLocaleString('en-US', { timeZone: 'Asia/Singapore' }).slice(0, 10);
+                const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' }); // YYYY-MM-DD
+                const fortyFiveDaysAgo = new Date(new Date().setDate(new Date().getDate() - 45)).toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' }); // YYYY-MM-DD
                 const sortedActive = Object.entries(tasks)
                     .filter(([_, task]) => task && task.title && !task.completed)
                     .sort((a, b) => {
@@ -698,7 +700,7 @@
         window.completeTask = function(key) {
             if (!currentUser) return;
             const taskRef = ref(db, `tasks/${currentUser.uid}/${key}`);
-            update(taskRef, { completed: true, completedDate: new Date().toLocaleString('en-US', { timeZone: 'Asia/Singapore' }).slice(0, 10) });
+            update(taskRef, { completed: true, completedDate: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' }) });
         }
 
         window.toggleSummary = function() {
@@ -714,7 +716,7 @@
                 const months = {};
                 Object.entries(tasks).forEach(([key, task]) => {
                     if (!task.title) return; // Skip undefined tasks
-                    const month = (task.completed ? task.completedDate : task.dueDate || new Date().toLocaleString('en-US', { timeZone: 'Asia/Singapore' }).slice(0, 10)).slice(0, 7);
+                    const month = (task.completed ? task.completedDate : task.dueDate || new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Singapore' })).slice(0, 7);
                     if (!months[month]) months[month] = {};
                     const cat = task.category || 'Uncategorized';
                     if (!months[month][cat]) months[month][cat] = { active: [], completed: [] };
