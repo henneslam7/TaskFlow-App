@@ -269,6 +269,11 @@
         .overview-item.total::before {
             content: "🗂️ ";
         }
+        .overview-item .titles {
+            font-size: 0.8em;
+            color: #eee;
+            margin-top: 5px;
+        }
         .summary-section {
             background: rgba(255, 255, 255, 0.2);
             border-radius: 20px;
@@ -410,16 +415,20 @@
             <h3>Today's Overview</h3>
             <div class="overview-grid">
                 <div class="overview-item high">
-                    <span id="highDueTitles">0</span><br>High Due Today
+                    <span id="highDue">0</span><br>High Due Today
+                    <div class="titles" id="highDueTitles"></div>
                 </div>
                 <div class="overview-item medium">
-                    <span id="mediumDueTitles">0</span><br>Medium Due Today
+                    <span id="mediumDue">0</span><br>Medium Due Today
+                    <div class="titles" id="mediumDueTitles"></div>
                 </div>
                 <div class="overview-item low">
-                    <span id="lowDueTitles">0</span><br>Low Due Today
+                    <span id="lowDue">0</span><br>Low Due Today
+                    <div class="titles" id="lowDueTitles"></div>
                 </div>
                 <div class="overview-item big">
-                    <span id="bigProjectsTitles">0</span><br>Big Projects Today
+                    <span id="bigProjects">0</span><br>Big Projects Today
+                    <div class="titles" id="bigProjectsTitles"></div>
                 </div>
                 <div class="overview-item total">
                     <span id="totalActive">0</span><br>Total Active
@@ -492,11 +501,15 @@
         const completedPlaceholder = document.getElementById('completedPlaceholder');
         const activeCount = document.getElementById('activeCount');
         const completedCount = document.getElementById('completedCount');
+        const highDue = document.getElementById('highDue');
+        const mediumDue = document.getElementById('mediumDue');
+        const lowDue = document.getElementById('lowDue');
+        const bigProjects = document.getElementById('bigProjects');
+        const totalActive = document.getElementById('totalActive');
         const highDueTitles = document.getElementById('highDueTitles');
         const mediumDueTitles = document.getElementById('mediumDueTitles');
         const lowDueTitles = document.getElementById('lowDueTitles');
         const bigProjectsTitles = document.getElementById('bigProjectsTitles');
-        const totalActive = document.getElementById('totalActive');
         const monthlySummary = document.getElementById('monthlySummary');
         const headerButton = document.querySelector('.header button');
         const taskEditModal = document.getElementById('taskEditModal');
@@ -518,11 +531,15 @@
                 completedPlaceholder.style.display = 'block';
                 activeCount.textContent = 0;
                 completedCount.textContent = 0;
-                highDueTitles.textContent = 0;
-                mediumDueTitles.textContent = 0;
-                lowDueTitles.textContent = 0;
-                bigProjectsTitles.textContent = 0;
+                highDue.textContent = 0;
+                mediumDue.textContent = 0;
+                lowDue.textContent = 0;
+                bigProjects.textContent = 0;
                 totalActive.textContent = 0;
+                highDueTitles.innerHTML = '';
+                mediumDueTitles.innerHTML = '';
+                lowDueTitles.innerHTML = '';
+                bigProjectsTitles.innerHTML = '';
                 monthlySummary.innerHTML = '';
             }
         });
@@ -565,7 +582,7 @@
             if (!title) return alert('Enter task title');
             const tasksRef = ref(db, `tasks/${currentUser.uid}`);
             const newTaskRef = push(tasksRef);
-            set(newTaskRef, { title, dueDate, category, priority, completed: false });
+            set(newTaskRef, { title, dueDate: dueDate || null, category, priority, completed: false });
             document.getElementById('taskTitle').value = '';
             document.getElementById('dueDate').value = '';
             document.getElementById('category').value = '';
@@ -577,14 +594,13 @@
                 const tasks = snapshot.val() || {};
                 activeTasksList.innerHTML = '';
                 completedTasksList.innerHTML = '';
-                activePlaceholder.style.display = Object.keys(tasks).length > 0 ? 'none' : 'block';
-                completedPlaceholder.style.display = Object.keys(tasks).length > 0 ? 'none' : 'block';
                 let activeC = 0, completedC = 0;
-                let hD = [], mD = [], lD = [], bP = [];
+                let hD = 0, mD = 0, lD = 0, bP = 0;
+                let hDT = [], mDT = [], lDT = [], bPT = [];
                 const today = new Date().toLocaleString('en-US', { timeZone: 'Asia/Singapore' }).slice(0, 10);
                 const fortyFiveDaysAgo = new Date(new Date().setDate(new Date().getDate() - 45)).toLocaleString('en-US', { timeZone: 'Asia/Singapore' }).slice(0, 10);
                 const sortedActive = Object.entries(tasks)
-                    .filter(([_, task]) => !task.completed)
+                    .filter(([_, task]) => task && task.title && !task.completed)
                     .sort((a, b) => {
                         const dateA = a[1].dueDate || '9999-12-31';
                         const dateB = b[1].dueDate || '9999-12-31';
@@ -593,35 +609,55 @@
                         return priorityOrder[a[1].priority] - priorityOrder[b[1].priority];
                     });
                 const sortedCompleted = Object.entries(tasks)
-                    .filter(([_, task]) => task.completed && task.completedDate && task.completedDate >= fortyFiveDaysAgo)
+                    .filter(([_, task]) => task && task.title && task.completed && task.completedDate >= fortyFiveDaysAgo)
                     .sort((a, b) => b[1].completedDate.localeCompare(a[1].completedDate));
                 sortedActive.forEach(([key, task]) => {
                     const li = document.createElement('div');
                     li.className = `task-item ${task.priority}`;
-                    li.innerHTML = `${task.title} (${task.category || 'Uncategorized'}) - ${task.dueDate || 'No due'} <button onclick="editTask('${key}', '${task.title}', '${task.dueDate || ''}', '${task.category || ''}', '${task.priority}')">Edit</button><button onclick="completeTask('${key}')">Done</button><button onclick="deleteTask('${key}')">Delete</button>`;
+                    li.innerHTML = `${task.title || 'Untitled'} (${task.category || 'Uncategorized'}) - ${task.dueDate || 'No due'} <button onclick="editTask('${key}', '${task.title || ''}', '${task.dueDate || ''}', '${task.category || ''}', '${task.priority}')">Edit</button><button onclick="completeTask('${key}')">Done</button><button onclick="deleteTask('${key}')">Delete</button>`;
                     activeTasksList.appendChild(li);
                     activeC++;
                     if (task.dueDate === today) {
-                        if (task.priority === 'high') hD.push(task.title);
-                        else if (task.priority === 'medium') mD.push(task.title);
-                        else if (task.priority === 'low') lD.push(task.title);
-                        else if (task.priority === 'big') bP.push(task.title);
+                        if (task.priority === 'high') {
+                            hD++;
+                            hDT.push(task.title || 'Untitled');
+                        } else if (task.priority === 'medium') {
+                            mD++;
+                            mDT.push(task.title || 'Untitled');
+                        } else if (task.priority === 'low') {
+                            lD++;
+                            lDT.push(task.title || 'Untitled');
+                        } else if (task.priority === 'big') {
+                            bP++;
+                            bPT.push(task.title || 'Untitled');
+                        }
                     }
                 });
                 sortedCompleted.forEach(([key, task]) => {
                     const li = document.createElement('div');
                     li.className = `task-item ${task.priority}`;
-                    li.innerHTML = `${task.title} (${task.category || 'Uncategorized'}) - ${task.completedDate} <button onclick="deleteTask('${key}')">Delete</button>`;
+                    li.innerHTML = `${task.title || 'Untitled'} (${task.category || 'Uncategorized'}) - ${task.completedDate} <button onclick="deleteTask('${key}')">Delete</button>`;
                     completedTasksList.appendChild(li);
                     completedC++;
                 });
                 activeCount.textContent = activeC;
                 completedCount.textContent = completedC;
-                highDueTitles.textContent = hD.length > 0 ? hD.join(', ') : '0';
-                mediumDueTitles.textContent = mD.length > 0 ? mD.join(', ') : '0';
-                lowDueTitles.textContent = lD.length > 0 ? lD.join(', ') : '0';
-                bigProjectsTitles.textContent = bP.length > 0 ? bP.join(', ') : '0';
+                highDue.textContent = hD;
+                mediumDue.textContent = mD;
+                lowDue.textContent = lD;
+                bigProjects.textContent = bP;
                 totalActive.textContent = activeC;
+                highDueTitles.innerHTML = hDT.length > 0 ? '<br>' + hDT.join(', ') : '';
+                mediumDueTitles.innerHTML = mDT.length > 0 ? '<br>' + mDT.join(', ') : '';
+                lowDueTitles.innerHTML = lDT.length > 0 ? '<br>' + lDT.join(', ') : '';
+                bigProjectsTitles.innerHTML = bPT.length > 0 ? '<br>' + bPT.join(', ') : '';
+                if (Object.keys(tasks).length === 0) {
+                    activePlaceholder.style.display = 'block';
+                    completedPlaceholder.style.display = 'block';
+                } else {
+                    activePlaceholder.style.display = 'none';
+                    completedPlaceholder.style.display = 'none';
+                }
             });
         }
 
@@ -642,7 +678,7 @@
             const priority = document.getElementById('editPrioritySelect').value;
             if (!title) return alert('Enter task title');
             const taskRef = ref(db, `tasks/${currentUser.uid}/${editingTaskId}`);
-            update(taskRef, { title, dueDate, category, priority });
+            update(taskRef, { title, dueDate: dueDate || null, category, priority });
             hideEditModal();
             loadTasks(currentUser.uid);
         }
@@ -677,6 +713,7 @@
                 const tasks = snapshot.val() || {};
                 const months = {};
                 Object.entries(tasks).forEach(([key, task]) => {
+                    if (!task.title) return; // Skip undefined tasks
                     const month = (task.completed ? task.completedDate : task.dueDate || new Date().toLocaleString('en-US', { timeZone: 'Asia/Singapore' }).slice(0, 10)).slice(0, 7);
                     if (!months[month]) months[month] = {};
                     const cat = task.category || 'Uncategorized';
