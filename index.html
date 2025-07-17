@@ -560,12 +560,12 @@
             if (!currentUser) return;
             const title = document.getElementById('taskTitle').value.trim();
             const dueDate = document.getElementById('dueDate').value;
-            const category = document.getElementById('category').value.trim();
+            const category = document.getElementById('category').value.trim() || 'Uncategorized';
             const priority = document.getElementById('prioritySelect').value;
             if (!title) return alert('Enter task title');
             const tasksRef = ref(db, `tasks/${currentUser.uid}`);
             const newTaskRef = push(tasksRef);
-            set(newTaskRef, { title, dueDate, category: category || 'Uncategorized', priority, completed: false });
+            set(newTaskRef, { title, dueDate, category, priority, completed: false });
             document.getElementById('taskTitle').value = '';
             document.getElementById('dueDate').value = '';
             document.getElementById('category').value = '';
@@ -593,12 +593,12 @@
                         return priorityOrder[a[1].priority] - priorityOrder[b[1].priority];
                     });
                 const sortedCompleted = Object.entries(tasks)
-                    .filter(([_, task]) => task.completed && task.completedDate >= fortyFiveDaysAgo)
+                    .filter(([_, task]) => task.completed && task.completedDate && task.completedDate >= fortyFiveDaysAgo)
                     .sort((a, b) => b[1].completedDate.localeCompare(a[1].completedDate));
                 sortedActive.forEach(([key, task]) => {
                     const li = document.createElement('div');
                     li.className = `task-item ${task.priority}`;
-                    li.innerHTML = `${task.title} (${task.category}) - ${task.dueDate || 'No due'} <button onclick="editTask('${key}', '${task.title}', '${task.dueDate || ''}', '${task.category || ''}', '${task.priority}')">Edit</button><button onclick="deleteTask('${key}')">Delete</button>`;
+                    li.innerHTML = `${task.title} (${task.category || 'Uncategorized'}) - ${task.dueDate || 'No due'} <button onclick="editTask('${key}', '${task.title}', '${task.dueDate || ''}', '${task.category || ''}', '${task.priority}')">Edit</button><button onclick="completeTask('${key}')">Done</button><button onclick="deleteTask('${key}')">Delete</button>`;
                     activeTasksList.appendChild(li);
                     activeC++;
                     if (task.dueDate === today) {
@@ -611,26 +611,26 @@
                 sortedCompleted.forEach(([key, task]) => {
                     const li = document.createElement('div');
                     li.className = `task-item ${task.priority}`;
-                    li.innerHTML = `${task.title} (${task.category}) - ${task.completedDate} <button onclick="deleteTask('${key}')">Delete</button>`;
+                    li.innerHTML = `${task.title} (${task.category || 'Uncategorized'}) - ${task.completedDate} <button onclick="deleteTask('${key}')">Delete</button>`;
                     completedTasksList.appendChild(li);
                     completedC++;
                 });
                 activeCount.textContent = activeC;
                 completedCount.textContent = completedC;
-                highDueTitles.textContent = hD.join(', ') || 0;
-                mediumDueTitles.textContent = mD.join(', ') || 0;
-                lowDueTitles.textContent = lD.join(', ') || 0;
-                bigProjectsTitles.textContent = bP.join(', ') || 0;
+                highDueTitles.textContent = hD.length > 0 ? hD.join(', ') : '0';
+                mediumDueTitles.textContent = mD.length > 0 ? mD.join(', ') : '0';
+                lowDueTitles.textContent = lD.length > 0 ? lD.join(', ') : '0';
+                bigProjectsTitles.textContent = bP.length > 0 ? bP.join(', ') : '0';
                 totalActive.textContent = activeC;
             });
         }
 
         window.editTask = function(key, title, dueDate, category, priority) {
             editingTaskId = key;
-            document.getElementById('editTaskTitle').value = title;
+            document.getElementById('editTaskTitle').value = title || '';
             document.getElementById('editDueDate').value = dueDate || '';
             document.getElementById('editCategory').value = category || '';
-            document.getElementById('editPrioritySelect').value = priority;
+            document.getElementById('editPrioritySelect').value = priority || 'low';
             taskEditModal.style.display = 'flex';
         }
 
@@ -638,11 +638,11 @@
             if (!currentUser || !editingTaskId) return;
             const title = document.getElementById('editTaskTitle').value.trim();
             const dueDate = document.getElementById('editDueDate').value;
-            const category = document.getElementById('editCategory').value.trim();
+            const category = document.getElementById('editCategory').value.trim() || 'Uncategorized';
             const priority = document.getElementById('editPrioritySelect').value;
             if (!title) return alert('Enter task title');
             const taskRef = ref(db, `tasks/${currentUser.uid}/${editingTaskId}`);
-            update(taskRef, { title, dueDate, category: category || 'Uncategorized', priority });
+            update(taskRef, { title, dueDate, category, priority });
             hideEditModal();
             loadTasks(currentUser.uid);
         }
@@ -657,6 +657,12 @@
             if (confirm('Are you sure you want to delete this task?')) {
                 remove(ref(db, `tasks/${currentUser.uid}/${key}`));
             }
+        }
+
+        window.completeTask = function(key) {
+            if (!currentUser) return;
+            const taskRef = ref(db, `tasks/${currentUser.uid}/${key}`);
+            update(taskRef, { completed: true, completedDate: new Date().toLocaleString('en-US', { timeZone: 'Asia/Singapore' }).slice(0, 10) });
         }
 
         window.toggleSummary = function() {
